@@ -4,6 +4,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 
 @SpringBootApplication
 class SpringBootKotlinTracingExampleApplication
@@ -18,3 +19,5 @@ data class ToDo(
     val id: Long = 0,
     val title: String,
 )
+
+interface ToDoRepository : CoroutineCrudRepository<ToDo, Long>
