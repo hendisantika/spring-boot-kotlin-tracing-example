@@ -1,8 +1,11 @@
 package com.hendisantika.springbootkotlintracingexample
 
 import io.micrometer.context.ContextSnapshot
+import io.micrometer.observation.Observation
+import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.reactor.mono
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.data.annotation.Id
@@ -34,6 +37,25 @@ suspend inline fun observeCtx(crossinline f: () -> Unit) {
         ).use {
             f()
             Mono.empty<Unit>()
+        }
+    }.awaitSingleOrNull()
+}
+
+suspend fun runObserved(name: String, observationRegistry: ObservationRegistry, f: suspend () -> Unit) {
+    Mono.deferContextual { contextView ->
+        ContextSnapshot.setThreadLocalsFrom(
+            contextView,
+            ObservationThreadLocalAccessor.KEY
+        ).use {
+            val observation = Observation.start(name, observationRegistry)
+            Mono.just(observation).flatMap {
+                mono { f() }
+            }.doOnError {
+                observation.error(it)
+                observation.stop()
+            }.doOnSuccess {
+                observation.stop()
+            }
         }
     }.awaitSingleOrNull()
 }
