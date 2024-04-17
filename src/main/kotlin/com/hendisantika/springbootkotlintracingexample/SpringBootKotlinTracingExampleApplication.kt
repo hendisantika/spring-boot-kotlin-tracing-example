@@ -4,6 +4,9 @@ import io.micrometer.context.ContextSnapshot
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
@@ -12,9 +15,11 @@ import org.springframework.boot.runApplication
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import kotlin.time.Duration.Companion.seconds
 
 @SpringBootApplication
 class SpringBootKotlinTracingExampleApplication
@@ -74,4 +79,29 @@ class TodoController(
         .build()
 
     val log = LoggerFactory.getLogger(javaClass)
+
+    @GetMapping("/test")
+    suspend fun test(): String {
+        observeCtx {
+            val currentObservation = observationRegistry.currentObservation
+            currentObservation?.highCardinalityKeyValue("test_key", "test sample value")
+            log.info("test log with tracing info")
+        }
+
+        runObserved("delay", observationRegistry) {
+            delay(1.seconds)
+        }
+
+        // Sample traced DB call
+        val dbTodos = todoRepo.findAll().toList()
+
+        // make web client call and return response
+        val externalTodos = webClient.get()
+            .uri("/todos/1")
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .awaitSingle()
+
+        return "${dbTodos.size} $externalTodos"
+    }
 }
