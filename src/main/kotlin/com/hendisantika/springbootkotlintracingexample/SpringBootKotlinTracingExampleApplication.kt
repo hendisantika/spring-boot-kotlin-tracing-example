@@ -6,6 +6,7 @@ import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
+import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.data.annotation.Id
@@ -67,4 +68,10 @@ class TodoController(
     val observationRegistry: ObservationRegistry,
     val todoRepo: ToDoRepository,
     webClientBuilder: WebClient.Builder
-)
+) {
+    val webClient = webClientBuilder
+        .baseUrl("https://jsonplaceholder.typicode.com")
+        .build()
+
+    val log = LoggerFactory.getLogger(javaClass)
+}
