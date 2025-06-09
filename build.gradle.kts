@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val micrometer_tracing = "1.5.0"
+val micrometer_tracing = "1.5.1"
 
 plugins {
     id("org.springframework.boot") version "3.5.0"
